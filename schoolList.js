@@ -6,6 +6,7 @@ var csv = require('csv');
 var fs = require('graceful-fs');
 
 const CSV_PATH = 'resources/pubschls.csv';
+const JSON_PATH = 'output/schoolList.json';
 
 
 
@@ -23,6 +24,14 @@ function extractSchool(err, data) {
       console.log(jsonSchool);
 
       //TODO: Print to json file
+      fs.writeFile(JSON_PATH, jsonSchool, logWrite);
+
+        function logWrite(err) {
+            if (err)
+                console.log("Error: " + err);
+            else
+                console.log("schoolList write is done!");
+        }
     }
 }
 
