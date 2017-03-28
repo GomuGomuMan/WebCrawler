@@ -12,6 +12,7 @@ const SELECTOR_FEP = 'input[value="Redesig4"]';
 const SELECTOR_SUBMIT = '#submit1';
 const HTML_PATH = 'output/doc.html';
 
+
 function configHorseman(Horseman) {
     var horseman = new Horseman({
         loadImages: false,
@@ -88,18 +89,52 @@ function serializeHtml(html) {
     //TODO: Serialize html pages
     // Use writeStream to write big file to disk
     var writeStream = fs.createWriteStream(HTML_PATH);
-    writeStream
-        .on('open', function () {
-            console.log('---Writing HTML---');
-            writeStream.write(html);
-        })
-        .on('close', function () {
-            console.log('WriteStream finished!');
-        }); // Not printing
+    // writeStream
+    //     .on('open', function () {
+    //         console.log('---Writing HTML---');
+    //         writeStream.write(html);
+    //     })
+    //     .on('end', function() {
+    //         console.log('Finished writing HTML');
+    //     });// Not printing
+    writeStream.write(html);
+    writeStream.end();
+
     //TODO: Open file and check if it exists already or not.
+    // wx: write + execute
+    // fs.open(HTML_PATH, 'wx', function (err, fd) {
+    //     if(err) {
+    //       if (err.code === 'EEXIST') {
+    //           console.error('File already exists');
+    //       }
+    //       else
+    //           throw err;
+    //     }
+
+    // })
+}
+
+/*
+* Generate appropriate year range
+* */
+function generateYearRange() {
+    yearRange = [];
+    for (var i = 2000; i <= 2015; ++i) {
+        var currYear = i + '-';
+        var nextYear = i % 100 + 1;
+        var rangeFormat = '';
+        if (nextYear < 10)
+            rangeFormat = currYear + '0' + nextYear;
+        else
+            rangeFormat = currYear + nextYear;
+        yearRange.push(rangeFormat);
+    }
+    // console.log(yearRange);
+    return yearRange;
 }
 
 if (require.main === module) {
+    var yearRange = generateYearRange();
     var horseman = configHorseman(Horseman);
     fsmHorseman(horseman, serializeHtml);
 }
