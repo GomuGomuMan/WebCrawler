@@ -10,7 +10,8 @@ const URL = 'http://data1.cde.ca.gov/dataquest/page2.asp?level=School&subject=LC
 const SELECTOR_SCHOOL = 'input[name="cName"]';
 const SELECTOR_FEP = 'input[value="Redesig4"]';
 const SELECTOR_SUBMIT = '#submit1';
-const HTML_PATH = 'output/doc.html';
+
+var yearRange = generateYearRange();
 
 
 function configHorseman(Horseman) {
@@ -24,6 +25,7 @@ function configHorseman(Horseman) {
 }
 
 function fsmHorseman(horseman, callback) { // Finite State Machine Horseman
+    var url = '';
     horseman
         .userAgent(USER_AGENT)
         .open(URL)
@@ -51,15 +53,24 @@ function fsmHorseman(horseman, callback) { // Finite State Machine Horseman
         .then(checkStatus)
         //result page
         .screenshot('test.png') // Success!!
-        .url() // Get final url
         .html()
         .then(function (html) {
-            callback(html);
-        })
-        // .log()
-        .close();
+            horseman
+                .url()
+                .then(function (url) {
+                    callback(html, url);
+                })
+                .close();
+                // .close();
 
-    //TODO: Serialize crawl url
+                // .then(function (url) {
+                //     console.log(url);
+                // });
+            // callback(html, url);
+            // callback(html);
+        });
+
+
 
 
     //TODO: Serialize failed search
@@ -70,7 +81,7 @@ function checkStatus(status) {
     if (status !== 200)
     {
         console.log("1st page does not load!");
-        horseman.close();
+        horseman.close(); // TODO:Check
         return 1;
     }
     return 0;
@@ -78,17 +89,21 @@ function checkStatus(status) {
 
 function checkSelectorExist(isSelectorExist) {
     if(!isSelectorExist) {
-        horseman.close();
+        horseman.close(); //TODO:Check
         console.log('Selector does not exist!');
         return 1;
     }
     return 0;
 }
 
-function serializeHtml(html) {
+function serializeHtml(html, url) {
     //TODO: Serialize html pages
+    // Create customized file name NAME_RANGE (NAME=test for now)
+    var yearRange = url.substring(url.length - 7);
+    var customFileName = 'output/' + 'test' + '_' + yearRange + '.html';
+
     // Use writeStream to write big file to disk
-    var writeStream = fs.createWriteStream(HTML_PATH);
+    var writeStream = fs.createWriteStream(customFileName);
     // writeStream
     //     .on('open', function () {
     //         console.log('---Writing HTML---');
@@ -118,8 +133,8 @@ function serializeHtml(html) {
 * Generate appropriate year range
 * */
 function generateYearRange() {
-    yearRange = [];
-    for (var i = 2000; i <= 2015; ++i) {
+    var yearRange = [];
+    for (var i = 2000; i <= 2014; ++i) {
         var currYear = i + '-';
         var nextYear = i % 100 + 1;
         var rangeFormat = '';
@@ -133,9 +148,54 @@ function generateYearRange() {
     return yearRange;
 }
 
-if (require.main === module) {
-    var yearRange = generateYearRange();
-    var horseman = configHorseman(Horseman);
-    fsmHorseman(horseman, serializeHtml);
+// Generate url over yearRange
+function generateURL(yearRange, url) {
+    var urlTemplate = url.substring(0, url.length - 7);
+    yearRange.forEach(function (year) {
+        var urlGen = urlTemplate + year;
+        //TODO:Crawl each of these
+        crawlYearRange(urlGen);
+        // return;
+    });
+    // console.log(yearRange);
+
 }
-//http://data1.cde.ca.gov/dataquest/SearchName.asp?rbTimeFrame=oneyear&rYear=2015-16&cName=Franklin+Elementary&Topic=LC&Level=School&submit1=Submit
+
+function crawlYearRange(url) {
+    var horseman = configHorseman(Horseman);
+    //TODO: Create delay to prevent server overload
+    horseman
+        .userAgent(USER_AGENT)
+        .open(url)
+        .wait(5000)
+        .status()
+        // .then(function (status) {
+        //     console.log('url: ' + url);
+        //     console.log('status:' + status);
+        // })
+        .then(checkStatus)
+        // .screenshot('test.png')
+        .html()
+        .then(function (html) {
+            serializeHtml(html, url);
+        })
+        .close();
+    return;
+}
+
+function assignTask(html, url) {
+    // console.log(html);
+    // console.log(url);
+    serializeHtml(html, url);
+
+    //TODO: Serialize crawl url
+    generateURL(yearRange, url);
+}
+
+if (require.main === module) {
+
+    var horseman = configHorseman(Horseman);
+    // fsmHorseman(horseman, serializeHtml);
+    fsmHorseman(horseman, assignTask);
+}
+
