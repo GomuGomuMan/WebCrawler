@@ -4,6 +4,7 @@
 //TODO: Finish crawler's skeleton
 var Horseman = require('node-horseman');
 var fs = require('graceful-fs');
+var mkdirp = require('mkdirp');
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0';
 const URL = 'http://data1.cde.ca.gov/dataquest/page2.asp?level=School&subject=LC&submit1=Submit';
@@ -24,7 +25,7 @@ function configHorseman(Horseman) {
     // fsmHorseman(horseman);
 }
 
-function fsmHorseman(horseman, callback) { // Finite State Machine Horseman
+function fsmHorseman(horseman, searchTerm, callback) { // Finite State Machine Horseman
     var url = '';
     horseman
         .userAgent(USER_AGENT)
@@ -34,7 +35,7 @@ function fsmHorseman(horseman, callback) { // Finite State Machine Horseman
         //1st page
         .exists(SELECTOR_SCHOOL)
         .then(checkSelectorExist)
-        .type(SELECTOR_SCHOOL, 'Franklin Elementary') // input school //TODO: limit to 25 char and text from json
+        .type(SELECTOR_SCHOOL, searchTerm) // input school //TODO: limit to 25 char and text from json
         .keyboardEvent('keypress', 16777221) // type enter
         .waitForNextPage() // wait for loading
         .status()
@@ -58,7 +59,7 @@ function fsmHorseman(horseman, callback) { // Finite State Machine Horseman
             horseman
                 .url()
                 .then(function (url) {
-                    callback(html, url);
+                    callback(html, url, searchTerm);
                 })
                 .close();
                 // .close();
@@ -96,11 +97,11 @@ function checkSelectorExist(isSelectorExist) {
     return 0;
 }
 
-function serializeHtml(html, url) {
+function serializeHtml(html, url, searchTerm) {
     //TODO: Serialize html pages
     // Create customized file name NAME_RANGE (NAME=test for now)
     var yearRange = url.substring(url.length - 7);
-    var customFileName = 'output/' + 'test' + '_' + yearRange + '.html';
+    var customFileName = 'output/' + searchTerm + '/' + yearRange + '.html';
 
     // Use writeStream to write big file to disk
     var writeStream = fs.createWriteStream(customFileName);
@@ -149,25 +150,25 @@ function generateYearRange() {
 }
 
 // Generate url over yearRange
-function generateURL(yearRange, url) {
+function generateURL(yearRange, url, searchTerm) {
     var urlTemplate = url.substring(0, url.length - 7);
     yearRange.forEach(function (year) {
         var urlGen = urlTemplate + year;
         //TODO:Crawl each of these
-        crawlYearRange(urlGen);
+        crawlYearRange(urlGen, searchTerm);
         // return;
     });
     // console.log(yearRange);
 
 }
 
-function crawlYearRange(url) {
+function crawlYearRange(url, searchTerm) {
     var horseman = configHorseman(Horseman);
     //TODO: Create delay to prevent server overload
     horseman
         .userAgent(USER_AGENT)
         .open(url)
-        .wait(5000)
+        .wait(10000) // faking human delay
         .status()
         // .then(function (status) {
         //     console.log('url: ' + url);
@@ -177,25 +178,45 @@ function crawlYearRange(url) {
         // .screenshot('test.png')
         .html()
         .then(function (html) {
-            serializeHtml(html, url);
+            serializeHtml(html, url, searchTerm);
         })
         .close();
     return;
 }
 
-function assignTask(html, url) {
-    // console.log(html);
-    // console.log(url);
-    serializeHtml(html, url);
+function assignTask(html, url, searchTerm) {
+    serializeHtml(html, url, searchTerm);
 
     //TODO: Serialize crawl url
-    generateURL(yearRange, url);
+    generateURL(yearRange, url, searchTerm);
+}
+
+function makeDir(searchTerm) {
+    var dirOutput = 'output' + '/' + searchTerm + '/';
+
+    mkdirp(dirOutput, function (err) {
+        if (err) {
+            throw err;
+        }
+        else {
+            console.log('Made directory!');
+        }
+    });
+
+    return true;
 }
 
 if (require.main === module) {
-
+    var searchTerm = 'Franklin Elementary';
     var horseman = configHorseman(Horseman);
-    // fsmHorseman(horseman, serializeHtml);
-    fsmHorseman(horseman, assignTask);
-}
 
+    //TODO: makedir output/word/yearRange
+    var isCreated = makeDir(searchTerm);
+    if (isCreated) {
+        console.log('Dir Created');
+        fsmHorseman(horseman, searchTerm, assignTask);
+    }
+
+
+    // fsmHorseman(horseman, searchTerm, assignTask);
+}
