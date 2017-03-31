@@ -4,7 +4,6 @@
 
 var csv = require('csv');
 var fs = require('graceful-fs');
-var intersect = require('intersect');
 
 var JSON_PATH = 'output/schoolList.json'; //output/schoolList.json
 var fileInfo = [{

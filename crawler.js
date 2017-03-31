@@ -5,12 +5,14 @@
 var Horseman = require('node-horseman');
 var fs = require('graceful-fs');
 var mkdirp = require('mkdirp');
+var JSONStream = require('JSONStream');
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0';
 const URL = 'http://data1.cde.ca.gov/dataquest/page2.asp?level=School&subject=LC&submit1=Submit';
 const SELECTOR_SCHOOL = 'input[name="cName"]';
 const SELECTOR_FEP = 'input[value="Redesig4"]';
 const SELECTOR_SUBMIT = '#submit1';
+const JSON_PATH = "output/schoolList.json";
 
 var yearRange = generateYearRange();
 
@@ -206,17 +208,38 @@ function makeDir(searchTerm) {
     return true;
 }
 
+function readJSON(callback) {
+    fs.createReadStream(JSON_PATH)
+        .pipe(JSONStream.parse('school'))
+        .on('data', function (school) {
+            school.forEach(function (data) {
+                return callback(data);
+            })
+        });
+}
+
 if (require.main === module) {
-    var searchTerm = 'Franklin Elementary';
-    var horseman = configHorseman(Horseman);
+    var temp = {
+        word: {
+            searchTerm: 'tada',
+            url: 'www.google.com',
+            year: '2017',
+            success: 'true'
+        }
+    };
+    console.log(temp);
 
-    //TODO: makedir output/word/yearRange
-    var isCreated = makeDir(searchTerm);
-    if (isCreated) {
-        console.log('Dir Created');
-        fsmHorseman(horseman, searchTerm, assignTask);
-    }
-
-
-    // fsmHorseman(horseman, searchTerm, assignTask);
+    readJSON(function (data) {
+        // console.log(data);
+    });
+    //
+    // var searchTerm = 'Franklin Elementary';
+    // var horseman = configHorseman(Horseman);
+    //
+    // //TODO: makedir output/word/yearRange
+    // var isCreated = makeDir(searchTerm);
+    // if (isCreated) {
+    //     console.log('Dir Created');
+    //     fsmHorseman(horseman, searchTerm, assignTask);
+    // }
 }
