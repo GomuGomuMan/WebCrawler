@@ -24,71 +24,8 @@ function configHorseman(Horseman) {
     });
 
     return horseman;
-    // fsmHorseman(horseman);
 }
 
-function fsmHorseman(horseman, searchTerm, callback) { // Finite State Machine Horseman
-    var url = '';
-    horseman
-        .userAgent(USER_AGENT)
-        .open(URL)
-        .status()
-        .then(checkStatus)
-        //1st page
-        .exists(SELECTOR_SCHOOL)
-        .then(checkSelectorExist)
-        .type(SELECTOR_SCHOOL, searchTerm) // input school //TODO: limit to 25 char and text from json
-        .keyboardEvent('keypress', 16777221) // type enter
-        .waitForNextPage() // wait for loading
-        .status()
-        .then(checkStatus)
-        //2nd page
-        // Check FEP
-        .exists(SELECTOR_FEP)
-        .then(checkSelectorExist)
-        .click(SELECTOR_FEP)
-        // Click submit btn
-        .exists(SELECTOR_SUBMIT)
-        .then(checkSelectorExist)
-        .click(SELECTOR_SUBMIT)
-        .waitForNextPage()
-        .status()
-        .then(checkStatus)
-        //result page
-        .screenshot('test.png') // Success!!
-        .html()
-        .then(function (html) {
-            horseman
-                .url()
-                .then(function (url) {
-                    callback(html, url, searchTerm);
-                })
-                .close();
-                // .close();
-
-                // .then(function (url) {
-                //     console.log(url);
-                // });
-            // callback(html, url);
-            // callback(html);
-        });
-
-
-
-
-    //TODO: Serialize failed search
-    return 0;
-}
-
-function checkStatus(status) {
-    if (status !== 200)
-    {
-        console.log("1st page does not load!");
-        horseman.close(); // TODO:Check
-        return 1;
-    }
-    return 0;
-}
 
 function checkSelectorExist(isSelectorExist) {
     if(!isSelectorExist) {
@@ -99,38 +36,7 @@ function checkSelectorExist(isSelectorExist) {
     return 0;
 }
 
-function serializeHtml(html, url, searchTerm) {
-    //TODO: Serialize html pages
-    // Create customized file name NAME_RANGE (NAME=test for now)
-    var yearRange = url.substring(url.length - 7);
-    var customFileName = 'output/' + searchTerm + '/' + yearRange + '.html';
 
-    // Use writeStream to write big file to disk
-    var writeStream = fs.createWriteStream(customFileName);
-    // writeStream
-    //     .on('open', function () {
-    //         console.log('---Writing HTML---');
-    //         writeStream.write(html);
-    //     })
-    //     .on('end', function() {
-    //         console.log('Finished writing HTML');
-    //     });// Not printing
-    writeStream.write(html);
-    writeStream.end();
-
-    //TODO: Open file and check if it exists already or not.
-    // wx: write + execute
-    // fs.open(HTML_PATH, 'wx', function (err, fd) {
-    //     if(err) {
-    //       if (err.code === 'EEXIST') {
-    //           console.error('File already exists');
-    //       }
-    //       else
-    //           throw err;
-    //     }
-
-    // })
-}
 
 /*
 * Generate appropriate year range
@@ -172,11 +78,18 @@ function crawlYearRange(url, searchTerm) {
         .open(url)
         .wait(10000) // faking human delay
         .status()
-        // .then(function (status) {
-        //     console.log('url: ' + url);
-        //     console.log('status:' + status);
-        // })
-        .then(checkStatus)
+        .then(function (status) {
+            if (status !== 200) {
+                console.log("--Error--");
+                console.log("Status: " + status);
+                horseman
+                    .url()
+                    .then(function (url) {
+                        console.log("URL: " + url);
+                        serializeFailedURL(searchTerm, url, status);
+                    })
+            }
+        })
         // .screenshot('test.png')
         .html()
         .then(function (html) {
@@ -218,28 +131,132 @@ function readJSON(callback) {
         });
 }
 
-if (require.main === module) {
-    var temp = {
-        word: {
-            searchTerm: 'tada',
-            url: 'www.google.com',
-            year: '2017',
-            success: 'true'
-        }
-    };
-    console.log(temp);
-
-    readJSON(function (data) {
-        // console.log(data);
+function serializeFailedURL(school, url, status) {
+    var text = school + ", " + url + ", " + status;
+    fs.writeFile("output/failedUrl.txt", text, function (err) {
+        if (err)
+            return console.log(err);
+        return console.log("Wrote to failedList");
     });
-    //
-    // var searchTerm = 'Franklin Elementary';
-    // var horseman = configHorseman(Horseman);
-    //
-    // //TODO: makedir output/word/yearRange
-    // var isCreated = makeDir(searchTerm);
-    // if (isCreated) {
-    //     console.log('Dir Created');
-    //     fsmHorseman(horseman, searchTerm, assignTask);
-    // }
 }
+
+/*
+* Reduces searchTerm to length 25 or less
+* */
+function shortenTerm(searchTerm) {
+    var idx = 24;
+    while(idx >= 0)
+    {
+        if (/\s/.test(searchTerm.charAt(idx))) {
+            // console.log("IDX: " + idx);
+            // console.log(searchTerm.substring(0, idx));
+            break;
+        }
+        --idx;
+    }
+    return searchTerm.substring(0, idx);
+}
+
+
+if (require.main === module) {
+    // var temp = {
+    //     schools: [{
+    //         school: 'tada',
+    //         url: 'www.google.com',
+    //         year: '2017',
+    //         success: 'true'
+    //     }]
+    // };
+
+    // readJSON(function (data) {
+    //     console.log(data);
+    // });
+
+    var searchTerm = 'Wheatland Alternative Education';
+    var shortenedTerm = shortenTerm(searchTerm);
+
+    var horseman = configHorseman(Horseman);
+
+    var isCreated = makeDir(shortenedTerm);
+    if (isCreated) {
+        fsmHorseman(horseman, shortenedTerm, assignTask);
+    }
+
+
+    function fsmHorseman(horseman, searchTerm, callback) { // Finite State Machine Horseman
+        horseman
+            .userAgent(USER_AGENT)
+            .open(URL)
+            .status()
+            .then(checkStatus)
+            //1st page
+            .exists(SELECTOR_SCHOOL)
+            .then(checkSelectorExist)
+            .type(SELECTOR_SCHOOL, searchTerm) // input school //TODO: limit to 25 char and text from json
+            .keyboardEvent('keypress', 16777221) // type enter
+            .waitForNextPage() // wait for loading
+            .status()
+            .then(checkStatus)
+            //2nd page
+            // Check FEP
+            .exists(SELECTOR_FEP)
+            .then(checkSelectorExist)
+            .click(SELECTOR_FEP)
+            // Click submit btn
+            .exists(SELECTOR_SUBMIT)
+            .then(checkSelectorExist)
+            .click(SELECTOR_SUBMIT)
+            .waitForNextPage()
+            .status()
+            .then(checkStatus)
+            //result page
+            .screenshot('test.png') // Success!!
+            .html()
+            .then(function (html) {
+                horseman
+                    .url()
+                    .then(function (url) {
+                        console.log("--Processing--");
+                        console.log("word: " + searchTerm);
+                        console.log("url: " + url);
+                        callback(html, url, searchTerm);
+                    })
+                    .close();
+            });
+        //TODO: Serialize failed search
+
+
+        function checkStatus(status) {
+            if (status !== 200) {
+                console.log("--Error--");
+                console.log("Status: " + status);
+                horseman
+                    .url()
+                    .then(function (url) {
+                        console.log("URL: " + url);
+                        //TODO: Better option is csv or json?
+                        serializeFailedURL(searchTerm, url, status);
+                    })
+            }
+        }
+
+        return 0;
+    }
+
+
+
+    function serializeHtml(html, url, searchTerm) {
+        //TODO: Serialize html pages
+        var yearRange = url.substring(url.length - 7);
+        var customFileName = 'output/' + searchTerm + '/' + yearRange + '.html';
+
+        // Use writeStream to write big file to disk
+        var writeStream = fs.createWriteStream(customFileName);
+        writeStream.write(html);
+        writeStream.end();
+
+        //TODO: Open file and check if it exists already or not.
+
+    }
+}
+
