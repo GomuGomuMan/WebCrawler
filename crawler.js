@@ -11,10 +11,13 @@ var async = require('async');
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0';
 const URL_PART1 = 'http://data1.cde.ca.gov/dataquest/SearchName.asp?rbTimeFrame=oneyear&rYear=2015-16&cName=';
 const URL_PART2 = '&Topic=LC&Level=School&submit1=Submit';
-const SELECTOR_SCHOOL = 'input[name="cName"]';
 const SELECTOR_FEP = 'input[value="Redesig4"]';
 const SELECTOR_SUBMIT = '#submit1';
 const JSON_PATH = "output/schoolList.json";
+
+const MIN_TIME = 5000;
+const MAX_TIME = 10000;
+const OPERATION_NUM = 10;
 
 var yearRange = generateYearRange();
 var failedSelector = [];
@@ -80,6 +83,7 @@ function crawlYearRange(url, searchTerm) {
                         serializeFailedURL(searchTerm, url, status);
                     })
             }
+
         })
         // .screenshot('test.png')
         .html()
@@ -118,10 +122,11 @@ function makeDir(searchTerm) {
 function readJSON(callback) {
     fs.createReadStream(JSON_PATH)
         .pipe(JSONStream.parse('school'))
-        .on('data', function (school) {
-            school.forEach(function (data) {
-                return callback(data);
-            })
+        .on('data', function (schools) {
+            // schools.forEach(function (data) {
+            //     return callback(data);
+            // })
+            return callback(schools);
         });
 }
 
@@ -259,6 +264,13 @@ function serializeHtml(html, url, searchTerm) {
 
 }
 
+/*
+* Return a random delay time between MIX_TIME and MAX_TIME
+* */
+function getRandomInt() {
+    return Math.floor(Math.random() * (MAX_TIME - MIN_TIME)) + MIN_TIME;
+}
+
 if (require.main === module) {
     // var temp = {
     //     schools: [{
@@ -269,17 +281,35 @@ if (require.main === module) {
     //     }]
     // };
 
+    //TODO: Trying async
     // readJSON(function (data) {
-    //     console.log(data);
+    //     async.eachLimit(data, 20, processData, function (err) {
+    //         if (err)
+    //             console.log("Error: " + err);
+    //     })
     // });
+    //
+    // function processData(searchTerm, callback) {
+    //     console.log(searchTerm);
+    //     return process.nextTick(callback);
+    // }
 
-    var searchTerm = 'T. S. MacQuiddy Elementary';
+    //TODO: Faking human delay between asynchronous operations
+    readJSON(function (data) {
+       data.forEach(function () {
+            console.log(getRandomInt());
+       })
+    });
 
-    var horseman = configHorseman(Horseman);
 
-    var isCreated = makeDir(searchTerm);
-    if (isCreated) {
-        fsmHorseman(horseman, searchTerm, assignTask);
-    }
+
+    // var searchTerm = 'T. S. MacQuiddy Elementary';
+    //
+    // var horseman = configHorseman(Horseman);
+    //
+    // var isCreated = makeDir(searchTerm);
+    // if (isCreated) {
+    //     fsmHorseman(horseman, searchTerm, assignTask);
+    // }
 }
 
