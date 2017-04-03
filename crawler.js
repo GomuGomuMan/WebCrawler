@@ -16,8 +16,8 @@ const SELECTOR_SUBMIT = '#submit1';
 const JSON_PATH = "output/schoolList.json";
 
 const MIN_TIME = 5000;
-const MAX_TIME = 10000;
-const OPERATION_NUM = 10;
+const MAX_TIME = 20000;
+const OPERATION_NUM = 3;
 
 var yearRange = generateYearRange();
 var failedSelector = [];
@@ -53,24 +53,39 @@ function generateYearRange() {
 
 // Generate url over yearRange
 function generateURL(yearRange, url, searchTerm) {
-    var urlTemplate = url.substring(0, url.length - 7);
-    yearRange.forEach(function (year) {
-        var urlGen = urlTemplate + year;
-        //TODO:Crawl each of these
-        crawlYearRange(urlGen, searchTerm);
-        // return;
-    });
-    // console.log(yearRange);
+    // var urlTemplate = url.substring(0, url.length - 7);
+    // yearRange.forEach(function (year) {
+    //     var urlGen = urlTemplate + year;
+    //     //TODO:Crawl each of these
+    //     crawlYearRange(urlGen, searchTerm);
+    // });
 
+    var urlTemplate = url.substring(0, url.length - 7);
+
+    async.eachLimit(yearRange, OPERATION_NUM, processData, function (err) {
+        if (err)
+            console.log("Error: " + err);
+    });
+
+    function processData(year, callback) {
+        setTimeout(function () {
+            var urlGen = urlTemplate + year;
+            //TODO:Crawl each of these
+            crawlYearRange(urlGen, searchTerm, function () {
+                callback(null);
+            });
+            // return callback(null);
+        }, getRandomInt());
+    }
 }
 
-function crawlYearRange(url, searchTerm) {
+function crawlYearRange(url, searchTerm, callback) {
     var horseman = configHorseman(Horseman);
     //TODO: Create delay to prevent server overload
     horseman
         .userAgent(USER_AGENT)
         .open(url)
-        .wait(10000) // faking human delay
+        // .wait(10000) // faking human delay
         .status()
         .then(function (status) {
             if (status !== 200) {
@@ -89,20 +104,12 @@ function crawlYearRange(url, searchTerm) {
         .html()
         .then(function (html) {
             serializeHtml(html, url, searchTerm);
+            return callback(null);
         })
         .close();
-    return;
 }
 
-function assignTask(html, url, searchTerm) {
 
-    if (html === null || url === null || searchTerm === null)
-        return 1;
-    serializeHtml(html, url, searchTerm);
-
-    //TODO: Serialize crawl url
-    generateURL(yearRange, url, searchTerm);
-}
 
 function makeDir(searchTerm) {
     var dirOutput = 'output' + '/' + searchTerm + '/';
@@ -202,7 +209,8 @@ function fsmHorseman(horseman, searchTerm, callback) { // Finite State Machine H
                 .exists(SELECTOR_SUBMIT)
                 .then(checkSelectorExist)
                 .click(SELECTOR_SUBMIT)
-                .waitForNextPage()
+                // .waitForNextPage()
+                .wait(10000) // Wait 10 sec instead
                 .status()
                 .then(checkStatus)
                 //result page
@@ -282,25 +290,42 @@ if (require.main === module) {
     // };
 
     //TODO: Trying async
-    // readJSON(function (data) {
-    //     async.eachLimit(data, 20, processData, function (err) {
-    //         if (err)
-    //             console.log("Error: " + err);
-    //     })
-    // });
-    //
-    // function processData(searchTerm, callback) {
-    //     console.log(searchTerm);
-    //     return process.nextTick(callback);
-    // }
-
-    //TODO: Faking human delay between asynchronous operations
     readJSON(function (data) {
-       data.forEach(function () {
-            console.log(getRandomInt());
-       })
+        async.eachLimit(data, OPERATION_NUM, processData, function (err) {
+            if (err)
+                console.log("Error: " + err);
+        })
     });
 
+    /*Wrap in set time out function to prevent stack overflow*/
+    function processData(searchTerm, callback) {
+
+        // console.log(getRandomInt());
+        setTimeout(function () {
+            // var searchTerm = 'T. S. MacQuiddy Elementary';
+
+            var horseman = configHorseman(Horseman);
+
+            var isCreated = makeDir(searchTerm);
+            if (isCreated) {
+                fsmHorseman(horseman, searchTerm, assignTask);
+                return callback(null);
+            }
+
+        }, getRandomInt());
+
+    }
+
+
+    function assignTask(html, url, searchTerm) {
+
+        if (html === null || url === null || searchTerm === null)
+            return 1;
+        serializeHtml(html, url, searchTerm);
+
+        //TODO: Serialize crawl url
+        generateURL(yearRange, url, searchTerm);
+    }
 
 
     // var searchTerm = 'T. S. MacQuiddy Elementary';
