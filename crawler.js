@@ -26,7 +26,7 @@ var failedSelector = [];
 function configHorseman(Horseman) {
     var horseman = new Horseman({
         loadImages: false,
-        timeout: 10000
+        timeout: 20000
     });
 
     return horseman;
@@ -85,28 +85,40 @@ function crawlYearRange(url, searchTerm, callback) {
     horseman
         .userAgent(USER_AGENT)
         .open(url)
-        // .wait(10000) // faking human delay
-        .status()
-        .then(function (status) {
-            if (status !== 200) {
-                console.log("--Error--");
-                console.log("Status: " + status);
+        .wait(5000) // faking human delay
+        .catch(function (err) {
+            if (err) { // Handle unknown error from horseman
+                console.log(err);
+                horseman.close();
+                return callback(null);
+            }
+            else {
                 horseman
-                    .url()
-                    .then(function (url) {
-                        console.log("URL: " + url);
-                        serializeFailedURL(searchTerm, url, status);
+                    .status()
+                    .then(function (status) {
+                        if (status !== 200) {
+                            console.log("--Error--");
+                            console.log("Status: " + status);
+                            horseman
+                                .url()
+                                .then(function (url) {
+                                    console.log("URL: " + url);
+                                    serializeFailedURL(searchTerm, url, status);
+                                })
+                        }
+
                     })
+                    // .screenshot('test.png')
+                    .html()
+                    .then(function (html) {
+                        serializeHtml(html, url, searchTerm);
+                        horseman.close();
+                        return callback(null);
+                    });
             }
 
-        })
-        // .screenshot('test.png')
-        .html()
-        .then(function (html) {
-            serializeHtml(html, url, searchTerm);
-            return callback(null);
-        })
-        .close();
+        });
+
 }
 
 
@@ -170,7 +182,8 @@ function shortenTerm(searchTerm) {
 }
 
 
-function fsmHorseman(horseman, searchTerm, callback) { // Finite State Machine Horseman
+function fsmHorseman(searchTerm, callback) { // Finite State Machine Horseman
+    var horseman = configHorseman(Horseman);
     var shortenedTerm = shortenTerm(searchTerm);
 
     horseman
@@ -223,9 +236,9 @@ function fsmHorseman(horseman, searchTerm, callback) { // Finite State Machine H
                             console.log("--Processing--");
                             console.log("word: " + searchTerm);
                             console.log("url: " + url);
-                            callback(html, url, searchTerm);
-                        })
-                        .close();
+                            horseman.close();
+                            return callback(html, url, searchTerm);
+                        });
                 });
         });
 
@@ -304,12 +317,23 @@ if (require.main === module) {
         setTimeout(function () {
             // var searchTerm = 'T. S. MacQuiddy Elementary';
 
-            var horseman = configHorseman(Horseman);
+
 
             var isCreated = makeDir(searchTerm);
             if (isCreated) {
-                fsmHorseman(horseman, searchTerm, assignTask);
-                return callback(null);
+                fsmHorseman(searchTerm, function assignTask(html, url, searchTerm) {
+                    if (html === null || url === null || searchTerm === null)
+                    {
+                        return callback(null);
+                    }
+
+                    serializeHtml(html, url, searchTerm);
+
+                    //TODO: Serialize crawl url
+                    generateURL(yearRange, url, searchTerm);
+                    return callback(null);
+                });
+                // return callback(null);
             }
 
         }, getRandomInt());
@@ -319,12 +343,7 @@ if (require.main === module) {
 
     function assignTask(html, url, searchTerm) {
 
-        if (html === null || url === null || searchTerm === null)
-            return 1;
-        serializeHtml(html, url, searchTerm);
 
-        //TODO: Serialize crawl url
-        generateURL(yearRange, url, searchTerm);
     }
 
 
