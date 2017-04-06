@@ -16,8 +16,8 @@ const SELECTOR_SUBMIT = '#submit1';
 const JSON_PATH = "output/schoolList.json";
 
 const MIN_TIME = 5000;
-const MAX_TIME = 20000;
-const OPERATION_NUM = 3;
+const MAX_TIME = 10000;
+const OPERATION_NUM = 2;
 
 var yearRange = generateYearRange();
 var failedSelector = [];
@@ -71,8 +71,8 @@ function generateURL(yearRange, url, searchTerm) {
         setTimeout(function () {
             var urlGen = urlTemplate + year;
             //TODO:Crawl each of these
-            crawlYearRange(urlGen, searchTerm, function () {
-                callback(null);
+            crawlYearRange(urlGen, searchTerm, function (err) {
+                callback(err);
             });
             // return callback(null);
         }, getRandomInt());
@@ -86,11 +86,11 @@ function crawlYearRange(url, searchTerm, callback) {
         .userAgent(USER_AGENT)
         .open(url)
         .wait(5000) // faking human delay
-        .catch(function (err) {
+        .then(function (err) {
             if (err) { // Handle unknown error from horseman
                 console.log(err);
-                horseman.close();
-                return callback(null);
+                callback(null);
+                return horseman.close();
             }
             else {
                 horseman
@@ -112,12 +112,11 @@ function crawlYearRange(url, searchTerm, callback) {
                     .html()
                     .then(function (html) {
                         serializeHtml(html, url, searchTerm);
-                        horseman.close();
-                        return callback(null);
+                        callback(null);
+                        return horseman.close();
                     });
             }
-
-        });
+        })
 
 }
 
@@ -189,6 +188,7 @@ function fsmHorseman(searchTerm, callback) { // Finite State Machine Horseman
     horseman
         .userAgent(USER_AGENT)
         .open(URL_PART1 + shortenedTerm + URL_PART2)
+        .wait(2000)
         .status()
         .then(checkStatus)
         //1st page
@@ -210,37 +210,40 @@ function fsmHorseman(searchTerm, callback) { // Finite State Machine Horseman
                         };
                         failedSelector.push(obj);
                         console.log(failedSelector);
-
-
                     })
                     .close();
                 return callback(null, null, null);
             }
-            horseman
-                .click(SELECTOR_FEP)
-                // Click submit btn
-                .exists(SELECTOR_SUBMIT)
-                .then(checkSelectorExist)
-                .click(SELECTOR_SUBMIT)
-                // .waitForNextPage()
-                .wait(10000) // Wait 10 sec instead
-                .status()
-                .then(checkStatus)
-                //result page
-                .screenshot('test.png') // Success!!
-                .html()
-                .then(function (html) {
-                    horseman
-                        .url()
-                        .then(function (url) {
-                            console.log("--Processing--");
-                            console.log("word: " + searchTerm);
-                            console.log("url: " + url);
-                            horseman.close();
-                            return callback(html, url, searchTerm);
-                        });
-                });
+            else {
+                horseman
+                    .click(SELECTOR_FEP)
+                    // Click submit btn
+                    .exists(SELECTOR_SUBMIT)
+                    .then(checkSelectorExist)
+                    .click(SELECTOR_SUBMIT)
+                    // .waitForNextPage()
+                    .wait(10000) // Wait 10 sec instead
+                    .status()
+                    .then(checkStatus)
+                    //result page
+                    .screenshot('test.png') // Success!!
+                    .html()
+                    .then(function (html) {
+                        horseman
+                            .url()
+                            .then(function (url) {
+                                console.log("--Processing--");
+                                console.log("word: " + searchTerm);
+                                console.log("url: " + url);
+                                callback(html, url, searchTerm);
+
+                                return horseman.close();
+                            });
+                    });
+            }
+
         });
+    // return callback(finalHtml, finalUrl, searchTerm);
 
     //TODO: Serialize failed search
 
@@ -258,8 +261,6 @@ function fsmHorseman(searchTerm, callback) { // Finite State Machine Horseman
                 })
         }
     }
-
-    return 0;
 }
 
 function checkSelectorExist(isSelectorExist) {
