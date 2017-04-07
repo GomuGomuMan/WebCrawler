@@ -13,7 +13,7 @@ const URL_PART1 = 'http://data1.cde.ca.gov/dataquest/SearchName.asp?rbTimeFrame=
 const URL_PART2 = '&Topic=LC&Level=School&submit1=Submit';
 const SELECTOR_FEP = 'input[value="Redesig4"]';
 const SELECTOR_SUBMIT = '#submit1';
-const JSON_PATH = "output/schoolList.json";
+const JSON_PATH = "output/unFinished.json";
 
 const MIN_TIME = 5000;
 const MAX_TIME = 10000;
@@ -209,7 +209,7 @@ function fsmHorseman(searchTerm, callback) { // Finite State Machine Horseman
                             error: 'selectorNotFound'
                         };
                         failedSelector.push(obj);
-                        console.log(failedSelector);
+                        // console.log(failedSelector);
                     })
                     .close();
                 return callback(null, null, null);
@@ -222,7 +222,7 @@ function fsmHorseman(searchTerm, callback) { // Finite State Machine Horseman
                     .then(checkSelectorExist)
                     .click(SELECTOR_SUBMIT)
                     // .waitForNextPage()
-                    .wait(10000) // Wait 10 sec instead
+                    .wait(5000) // Wait 10 sec instead
                     .status()
                     .then(checkStatus)
                     //result page
@@ -294,14 +294,6 @@ function getRandomInt() {
 }
 
 if (require.main === module) {
-    // var temp = {
-    //     schools: [{
-    //         school: 'tada',
-    //         url: 'www.google.com',
-    //         year: '2017',
-    //         success: 'true'
-    //     }]
-    // };
 
     //TODO: Trying async
     readJSON(function (data) {
@@ -341,20 +333,5 @@ if (require.main === module) {
 
     }
 
-
-    function assignTask(html, url, searchTerm) {
-
-
-    }
-
-
-    // var searchTerm = 'T. S. MacQuiddy Elementary';
-    //
-    // var horseman = configHorseman(Horseman);
-    //
-    // var isCreated = makeDir(searchTerm);
-    // if (isCreated) {
-    //     fsmHorseman(horseman, searchTerm, assignTask);
-    // }
 }
 
