@@ -13,6 +13,7 @@ var fileInfo = [{
     selector: 'School'}];
 
 const REG = /[\w^)]$/;
+const REG_DIR = /[\\\/:\*\?<\>|]/g;
 
 //TODO: Extract 2 files and do union
 
@@ -21,7 +22,12 @@ const REG = /[\w^)]$/;
 function adjustStr(str, callback)
 {
     if(!str || REG.test(str)) // Check for empty input
+    {
+        // Replace special character with empty string to create dir
+        str = str.replace(REG_DIR, "");
         return callback(str);
+    }
+
     else
     {
         // console.log('Not match');
@@ -85,6 +91,11 @@ if (require.main === module) {
 
 
     });
+
+    // var str = "Hi: There / I am Athena";
+    // str = str.replace(/[\\\/:\?<\>|]/g, "");
+    // console.log(str);
+
 
     function findCommon(list, callback) {
         // Merge array and de-duplicate
