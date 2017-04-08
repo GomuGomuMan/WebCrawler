@@ -81,41 +81,51 @@ function generateURL(yearRange, url, searchTerm) {
 
 function crawlYearRange(url, searchTerm, callback) {
     var horseman = configHorseman(Horseman);
+    var cont = true;
     //TODO: Create delay to prevent server overload
     horseman
         .userAgent(USER_AGENT)
         .open(url)
-        .wait(5000) // faking human delay
-        .then(function (err) {
-            if (err) { // Handle unknown error from horseman
-                console.log(err);
-                callback(null);
-                return horseman.close();
+        .wait(6000) // faking human delay
+        .catch((err) => {
+          console.log(err);
+          cont = false;
+        })
+        .then(function () {
+            // if (err) { // Handle unknown error from horseman
+            //     console.log(err);
+            //     callback(null);
+            //     return horseman.close();
+            // }
+            if (!cont) {
+              callback(null);
+              return horseman.close();
             }
-            else {
-                horseman
-                    .status()
-                    .then(function (status) {
-                        if (status !== 200) {
-                            console.log("--Error--");
-                            console.log("Status: " + status);
-                            horseman
-                                .url()
-                                .then(function (url) {
-                                    console.log("URL: " + url);
-                                    serializeFailedURL(searchTerm, url, status);
-                                })
-                        }
 
-                    })
-                    // .screenshot('test.png')
-                    .html()
-                    .then(function (html) {
-                        serializeHtml(html, url, searchTerm);
-                        callback(null);
-                        return horseman.close();
-                    });
-            }
+
+            horseman
+                .status()
+                .then(function (status) {
+                    if (status !== 200) {
+                        console.log("--Error--");
+                        console.log("Status: " + status);
+                        horseman
+                            .url()
+                            .then(function (url) {
+                                console.log("URL: " + url);
+                                serializeFailedURL(searchTerm, url, status);
+                            })
+                    }
+
+                })
+                // .screenshot('test.png')
+                .html()
+                .then(function (html) {
+                    serializeHtml(html, url, searchTerm);
+                    callback(null);
+                    return horseman.close();
+                });
+
         })
 
 }
@@ -334,4 +344,3 @@ if (require.main === module) {
     }
 
 }
-
