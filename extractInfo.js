@@ -9,10 +9,6 @@ const columns = {
   csdCode: 'CSDCode'
 }
 
-//TODO: Check if file exists
-// if exists => create dir
-// if not => append
-
 // Load html
 var html = "";
 fs.createReadStream('output/A. L. Conner Elementary/2015-16.html')
@@ -56,6 +52,31 @@ fs.createReadStream('output/A. L. Conner Elementary/2015-16.html')
   // #div750 > li:nth-child(11) > table > tbody > tr:nth-child(2) > td:nth-child(2)
 
 // const $ = cheerio.load('')
+
+//TODO: Check if file exists
+// if exists => create dir
+// if not => append
+
+isExists = (callback) => {
+  // 'output/A. L. Conner Elementary/2015-16.html'
+  // 'output/3 R Community Day/2015-16.html'
+  fs.access('output/A. L. Conner Elementary/2015-16.html', (err) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        console.error(`File does not exist`);
+        return callback(false);
+      }
+    }
+    else {
+      console.log(`2015-16 html file exists`);
+      return callback(true);
+    }
+  });
+}
+
+isExists((result) => {
+  console.log(result);
+});
 
 getData = ($, callback) => {
   var schoolInfo = [];
