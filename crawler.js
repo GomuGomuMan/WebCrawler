@@ -52,7 +52,7 @@ function generateYearRange() {
 }
 
 // Generate url over yearRange
-function generateURL(yearRange, url, searchTerm) {
+function generateURL(yearRange, url, searchTerm, callback) {
     // var urlTemplate = url.substring(0, url.length - 7);
     // yearRange.forEach(function (year) {
     //     var urlGen = urlTemplate + year;
@@ -65,13 +65,16 @@ function generateURL(yearRange, url, searchTerm) {
     async.eachLimit(yearRange, OPERATION_NUM, processData, function (err) {
         if (err)
             console.log("Error: " + err);
+        callback(null);
     });
 
     function processData(year, callback) {
         setTimeout(function () {
+            var amount = 0
             var urlGen = urlTemplate + year;
             //TODO:Crawl each of these
             crawlYearRange(urlGen, searchTerm, function (err) {
+
                 callback(err);
             });
             // return callback(null);
@@ -332,9 +335,11 @@ if (require.main === module) {
 
                     serializeHtml(html, url, searchTerm);
 
-                    //TODO: Serialize crawl url
-                    generateURL(yearRange, url, searchTerm);
-                    return callback(null);
+                    //TODO: return callback inside generateURL
+                    generateURL(yearRange, url, searchTerm, (err) => {
+                      return callback(null);
+                    });
+
                 });
                 // return callback(null);
             }
